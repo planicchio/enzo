@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>21 LEVELS — Birthday Game for Enzo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#FAF8F5',
+                        'cream-card': '#FFFFFF',
+                        brand: {
+                            50: '#FFF7ED',
+                            100: '#FFEDD5',
+                            400: '#FF8A4C',
+                            500: '#FF6B35',
+                            600: '#E85522',
+                            700: '#C23D10',
+                        },
+                        charcoal: {
+                            800: '#2B2B2C',
+                            900: '#1C1C1E',
+                        },
+                        darkbg: '#121216',
+                        darkcard: '#1E1E24',
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        heading: ['Lexend', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'cozy': '0 8px 30px rgba(0, 0, 0, 0.06)',
+                        'game': '0 10px 25px -5px rgba(255, 107, 53, 0.25), 0 8px 10px -6px rgba(255, 107, 53, 0.2)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 20px rgba(255, 107, 53, 0.5)',
+                        'gold-glow': '0 0 25px rgba(245, 158, 11, 0.6)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #FAF8F5;
+            color: #2B2B2C;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        
+        .font-heading {
+            font-family: 'Lexend', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.03);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FF6B35;
+            border-radius: 99px;
+        }
+
+        /* Float Animation */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Pulse Soft */
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.9; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2.5s ease-in-out infinite;
+        }
+
+        /* Floating XP popup */
+        @keyframes floatXP {
+            0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+            30% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1); }
+        }
+        .xp-float-anim {
+            animation: floatXP 1.2s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Envelope Lid Flip */
+        .envelope-lid {
+            transform-origin: top;
+            transition: transform 0.6s ease-in-out;
+        }
+        .envelope-open .envelope-lid {
+            transform: rotateX(180deg);
+        }
+
+        /* Custom Checkbox / Toggle */
+        .toggle-checkbox:checked {
+            right: 0;
+            background-color: #FF6B35;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #FFEDD5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- TOP STATUS HUD BAR -->
+    <header id="top-hud" class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-orange-100 px-4 py-2.5 transition-all duration-300">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-3">
+            <!-- Player Badge -->
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-white flex items-center justify-center font-heading font-bold text-sm shadow-sm border border-brand-400">
+                    P1
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="hud-player-name" class="font-heading font-bold text-xs tracking-wide uppercase text-charcoal-800">ENZO</span>
+                        <span class="text-[10px] bg-orange-100 text-brand-700 font-semibold px-1.5 py-0.5 rounded-md">LVL <span id="hud-level-num">1</span></span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 font-medium flex items-center gap-1">
+                        <span>XP:</span>
+                        <span id="hud-xp-text" class="text-brand-600 font-bold">0 / 2100</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- XP Progress Bar -->
+            <div class="flex-1 max-w-[140px] sm:max-w-[180px]">
+                <div class="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200">
+                    <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-brand-400 to-brand-500 rounded-full transition-all duration-500 w-0"></div>
+                </div>
+            </div>
+
+            <!-- Controls (Sound + Menu) -->
+            <div class="flex items-center gap-1">
+                <button id="audio-toggle-btn" onclick="toggleAudio()" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-orange-50 border border-gray-200 flex items-center justify-center text-gray-600 transition-colors" title="Toggle Sound">
+                    <span id="audio-icon">🔊</span>
+                </button>
+                <button onclick="openSettingsModal()" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-orange-50 border border-gray-200 flex items-center justify-center text-gray-600 transition-colors" title="Settings / Menu">
+                    ⚙️
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- FLOATING XP NOTIFICATION CONTAINER -->
+    <div id="xp-floating-container" class="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"></div>
+
+    <!-- MAIN APP VIEWPORT CONTAINER -->
+    <main class="flex-1 w-full max-w-xl mx-auto px-4 py-6 flex flex-col justify-center">
+
+        <!-- SCREEN 1: START SCREEN -->
+        <section id="screen-start" class="screen-view active flex flex-col items-center text-center space-y-6">
+            <div class="relative">
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-brand-500 to-orange-400 text-white flex items-center justify-center text-4xl shadow-game animate-float">
+                    🎮
+                </div>
+                <div class="absolute -top-2 -right-2 bg-yellow-400 text-xs font-heading font-black px-2 py-0.5 rounded-full border-2 border-white shadow-sm text-charcoal-900">
+                    21st BDAY
+                </div>
+            </div>
+
+            <div>
+                <span class="inline-block px-3 py-1 bg-orange-100 text-brand-700 font-heading font-bold text-xs uppercase tracking-wider rounded-full mb-2">
+                    A Private Birthday Experience
+                </span>
+                <h1 class="font-heading font-extrabold text-4xl sm:text-5xl text-charcoal-900 tracking-tight leading-tight">
+                    21 LEVELS
+                </h1>
+                <p class="text-brand-600 font-medium text-lg mt-1">
+                    A birthday game made just for you.
+                </p>
+            </div>
+
+            <!-- Player Card Badge -->
+            <div class="w-full bg-white rounded-2xl p-4 border border-orange-100 shadow-cozy text-left space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">PLAYER CARD</span>
+                    <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">STATUS: BIRTHDAY BOY 🎉</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <span class="text-xs text-gray-400 block">PLAYER 01</span>
+                        <span id="card-player-name" class="font-bold text-charcoal-800">ENZO</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 block">LEVEL / AGE</span>
+                        <span class="font-bold text-brand-600">21 YEARS OLD</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 block">RELATIONSHIP XP</span>
+                        <span id="card-rel-xp" class="font-bold text-charcoal-800">6 YEARS TOGETHER</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 block">CO-OP PARTNER</span>
+                        <span id="card-partner-name" class="font-bold text-charcoal-800">ANA ❤️️</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 max-w-xs leading-relaxed italic">
+                “Six years together. Twenty-one years of you. One very special day.”
+            </p>
+
+            <button id="start-game-btn" onclick="nextScreen('screen-letter')" class="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-heading font-bold text-lg rounded-2xl shadow-game transition-all duration-200 active:scale-95 flex items-center justify-center gap-2">
+                <span id="start-btn-text">START GAME →</span>
+            </button>
+        </section>
+
+
+        <!-- SCREEN 2: THE BIRTHDAY LETTER -->
+        <section id="screen-letter" class="screen-view hidden flex-col space-y-5">
+            <div class="text-center space-y-1">
+                <span class="text-xs font-bold text-brand-600 tracking-wider uppercase">QUEST PRELOGUE</span>
+                <h2 class="font-heading font-extrabold text-2xl text-charcoal-900">Before we start...</h2>
+                <p class="text-xs text-gray-500">I wanted you to read this letter first ❤️</p>
+            </div>
+
+            <!-- Letter Container -->
+            <div id="letter-card" class="bg-amber-50/80 rounded-2xl p-5 sm:p-6 border border-amber-200/70 shadow-cozy relative overflow-hidden transition-all duration-500">
+                <div class="absolute -top-4 -right-4 w-16 h-16 bg-brand-100 rounded-full opacity-50 blur-xl"></div>
+                
+                <div class="letter-content font-sans text-sm sm:text-base text-gray-800 space-y-4 leading-relaxed max-h-[55vh] overflow-y-auto pr-1">
+                    <p id="letter-text-1" class="font-medium text-brand-700">Oi, meu amor, feliz aniversário! 🎉</p>
+                    <p id="letter-text-2">Hoje você faz 21 anos e atingimos oficialmente a maturidade juntos.</p>
+                    <p id="letter-text-3">Te vi crescer e evoluir nesses anos desde os 15, e você continua sendo meu amor. Eu continuo apaixonada por cada pedaço de você.</p>
+                    <p id="letter-text-4">Você me deu nossa filha, uma vida maravilhosa e a capacidade de evoluir e amar todos os dias.</p>
+                    <p id="letter-text-5">Preparei um presente e um dia muito legal para você. Não é muito, mas espero que você goste.</p>
+                    <p id="letter-text-6">Ainda lembro das nossas aventuras, memórias, cada partida de Overwatch, cada risada, cada amor e cada detalhe seu.</p>
+                    <p id="letter-text-7">Obrigada por existir e por ser o melhor marido e pai para nossa filha.</p>
+                    <p id="letter-text-8" class="bg-orange-100/70 p-3 rounded-xl border border-orange-200 text-charcoal-900 font-medium">
+                        Você é a pessoa mais esforçada que eu conheço e eu te admiro muito. Você anda de bicicleta todos os dias só para nos dar uma vida boa, e isso é algo que eu admiro mais do que consigo explicar.
+                    </p>
+                    <p id="letter-text-9">Você é meu orgulho.</p>
+                    <p id="letter-text-10">Você é muito inteligente, sabe de tudo e tem algumas piadas engraçadas às vezes. Seu jeitinho atrapalhão e doce me encanta.</p>
+                    <p id="letter-text-11">Sei que você está triste por passar longe da sua família e por causa de todos os problemas, mas hoje eu quero que o Enzo pequeno seja feliz e ajude o Enzo grande.</p>
+                    <p id="letter-text-12">Quero que você aproveite o seu dia especial. Eu te amo muito.</p>
+                    <div class="pt-2 border-t border-amber-200/60 text-right">
+                        <span class="block text-xs text-gray-500">Com todo meu amor,</span>
+                        <span id="letter-sign" class="font-heading font-bold text-brand-600 text-base">Sua Ana ❤️️</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="nextScreen('screen-family')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-heading font-bold rounded-xl shadow-game transition-all duration-200 active:scale-95 flex items-center justify-center gap-2">
+                <span>I'M READY →</span>
+            </button>
+        </section>
+
+
+        <!-- SCREEN 3: CUSTOM FAMILY ILLUSTRATION -->
+        <section id="screen-family" class="screen-view hidden flex-col space-y-5 text-center">
+            <div>
+                <span class="text-xs font-bold text-brand-600 tracking-wider uppercase">CO-OP SQUAD UNLOCKED</span>
+                <h2 class="font-heading font-extrabold text-2xl text-charcoal-900">Our Little Team</h2>
+                <p class="text-xs text-gray-500">PLAYER 01 + PLAYER 02 + MINI PLAYER</p>
+            </div>
+
+            <!-- FAMILY SVG ILLUSTRATION CARD -->
+            <div class="bg-white rounded-3xl p-6 border border-orange-100 shadow-cozy flex flex-col items-center justify-center space-y-4">
+                <div class="w-full max-w-xs aspect-square bg-gradient-to-b from-orange-50 to-amber-50 rounded-2xl p-4 flex items-center justify-center border border-orange-100/60 relative overflow-hidden">
+                    
+                    <!-- Decorative Background Elements -->
+                    <div class="absolute top-2 left-3 text-xs opacity-40 font-mono">★ STAGE 21 ★</div>
+                    <div class="absolute bottom-2 right-3 text-xs opacity-40 font-mono">SQUAD ID: 0102</div>
+
+                    <!-- CUSTOM SVG VECTOR FAMILY -->
+                    <svg viewBox="0 0 300 280" class="w-full h-full drop-shadow-md">
+                        <!-- Background Glow -->
+                        <circle cx="150" cy="140" r="110" fill="#FFEAD9" opacity="0.6"/>
+
+                        <!-- ENZO (HUSBAND) - Left Side -->
+                        <g id="husband-enzo">
+                            <!-- Body / Outfit (Toy Story Woody Shirt - Yellow Grid + Vest) -->
+                            <path d="M 60 170 C 60 135, 115 135, 115 170 L 120 260 L 55 260 Z" fill="#FCD34D" stroke="#D97706" stroke-width="1.5"/>
+                            <!-- Grid Pattern on Shirt -->
+                            <path d="M 60 180 L 115 180 M 60 200 L 118 200 M 80 145 L 80 250 M 100 145 L 100 250" stroke="#EF4444" stroke-width="1" opacity="0.5"/>
+                            <!-- Cow Cowhide Vest -->
+                            <path d="M 60 170 C 60 145, 75 140, 80 170 L 78 250 L 55 250 Z" fill="#FFFFFF" stroke="#374151" stroke-width="1"/>
+                            <path d="M 63 180 Q 68 185 65 190 Q 60 195 65 200 Z" fill="#1F2937"/>
+                            <path d="M 70 220 Q 75 225 72 230 Z" fill="#1F2937"/>
+                            <!-- Neck & Head -->
+                            <rect x="78" y="125" width="16" height="18" fill="#F3C5A5" rx="4"/>
+                            <!-- Face -->
+                            <ellipse cx="86" cy="108" rx="26" ry="28" fill="#F3C5A5"/>
+                            <!-- Glasses -->
+                            <rect x="68" y="98" width="16" height="13" rx="3" fill="none" stroke="#1F2937" stroke-width="2.5"/>
+                            <rect x="88" y="98" width="16" height="13" rx="3" fill="none" stroke="#1F2937" stroke-width="2.5"/>
+                            <line x1="84" y1="104" x2="88" y2="104" stroke="#1F2937" stroke-width="2.5"/>
+                            <!-- Eyes -->
+                            <circle cx="76" cy="104" r="3" fill="#4B2E1E"/>
+                            <circle cx="96" cy="104" r="3" fill="#4B2E1E"/>
+                            <!-- Smile -->
+                            <path d="M 78 120 Q 86 127 94 120" fill="none" stroke="#B91C1C" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Brown Straight Hair -->
+                            <path d="M 58 102 C 58 75, 114 75, 114 102 C 114 90, 100 80, 86 80 C 72 80, 58 90, 58 102 Z" fill="#4A2810"/>
+                            <!-- Woody Sheriff Star -->
+                            <polygon points="105,175 107,180 112,180 108,183 110,188 105,185 100,188 102,183 98,180 103,180" fill="#F59E0B" stroke="#B45309" stroke-width="0.8"/>
+                        </g>
+
+                        <!-- ANA (WIFE) - Right Side -->
+                        <g id="wife-ana">
+                            <!-- Body / Outfit (Cowgirl Jessie Red / White Detail) -->
+                            <path d="M 180 170 C 180 135, 235 135, 235 170 L 240 260 L 175 260 Z" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1.5"/>
+                            <!-- White Shirt Top with Red Stitching -->
+                            <path d="M 185 150 Q 207 165 230 150 L 232 175 L 183 175 Z" fill="#FFFFFF"/>
+                            <path d="M 188 156 Q 207 170 227 156" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="2,2"/>
+                            <!-- Neck & Head -->
+                            <rect x="200" y="125" width="15" height="18" fill="#FFF0E5" rx="4"/>
+                            <!-- Face -->
+                            <ellipse cx="207" cy="108" rx="25" ry="26" fill="#FFF0E5"/>
+                            <!-- Cute Chubby Cheeks (Rosy) -->
+                            <circle cx="192" cy="116" r="6" fill="#FCA5A5" opacity="0.6"/>
+                            <circle cx="222" cy="116" r="6" fill="#FCA5A5" opacity="0.6"/>
+                            <!-- Eyes -->
+                            <circle cx="196" cy="105" r="3.5" fill="#523A28"/>
+                            <circle cx="218" cy="105" r="3.5" fill="#523A28"/>
+                            <!-- Smile -->
+                            <path d="M 198 120 Q 207 127 216 120" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Blonde Hair -->
+                            <path d="M 178 115 C 176 75, 238 75, 236 115 C 242 135, 238 160, 232 175 C 220 120, 230 90, 207 88 C 184 90, 194 120, 182 175 C 176 160, 172 135, 178 115 Z" fill="#FACC15"/>
+                            <!-- Hair Highlights -->
+                            <path d="M 185 98 Q 207 85 229 98" fill="none" stroke="#FEF08A" stroke-width="2"/>
+                        </g>
+
+                        <!-- DAUGHTER (MINI PLAYER) - Center Arms -->
+                        <g id="baby-daughter">
+                            <!-- Wrapped / Body -->
+                            <path d="M 120 185 C 120 160, 175 160, 175 185 L 172 250 L 123 250 Z" fill="#F472B6" stroke="#DB2777" stroke-width="1.5"/>
+                            <!-- Small Sheriff Badge -->
+                            <circle cx="148" cy="180" r="5" fill="#F59E0B"/>
+                            <!-- Head & Neck -->
+                            <ellipse cx="147" cy="148" rx="19" ry="20" fill="#FDE68A"/>
+                            <ellipse cx="147" cy="148" rx="18" ry="19" fill="#FFF0E5"/>
+                            <!-- Wavy Light Brown Hair -->
+                            <path d="M 130 142 C 128 125, 166 125, 164 142 C 168 135, 158 128, 147 128 C 136 128, 126 135, 130 142 Z" fill="#9A3412"/>
+                            <!-- Eyes & Big Smile -->
+                            <circle cx="140" cy="148" r="2.5" fill="#451A03"/>
+                            <circle cx="154" cy="148" r="2.5" fill="#451A03"/>
+                            <path d="M 141 156 Q 147 162 153 156" fill="none" stroke="#E11D48" stroke-width="1.5" stroke-linecap="round"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="space-y-1">
+                    <h3 class="font-heading font-bold text-lg text-charcoal-900">“Our little team.”</h3>
+                    <p class="text-xs text-brand-600 font-semibold bg-orange-50 px-3 py-1 rounded-full border border-orange-100 inline-block">
+                        ❤️️ Ana + Enzo + Baby Squad
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="nextScreen('screen-game')" class="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-heading font-bold text-lg rounded-2xl shadow-game transition-all duration-200 active:scale-95 flex items-center justify-center gap-2">
+                <span>ENTER THE 21 LEVELS →</span>
+            </button>
+        </section>
+
+
+        <!-- SCREEN 4: THE MAIN GAME HUB & 21 LEVELS -->
+        <section id="screen-game" class="screen-view hidden flex-col space-y-4">
+            
+            <!-- Level Indicator Badge Header -->
+            <div class="bg-white rounded-2xl p-3.5 border border-orange-100 shadow-cozy flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">CURRENT MISSION</span>
+                    <span class="font-heading font-extrabold text-xl text-brand-600">
+                        LEVEL <span id="level-display-num">1</span> <span class="text-gray-300 font-normal">/ 21</span>
+                    </span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">TOTAL XP REWARD</span>
+                    <span id="level-xp-display" class="font-heading font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-lg text-xs">
+                        +100 XP
+                    </span>
+                </div>
+            </div>
+
+            <!-- LEVEL DYNAMIC CARD CONTENT -->
+            <div id="level-card-body" class="bg-white rounded-3xl p-5 sm:p-6 border border-orange-100 shadow-cozy min-h-[320px] flex flex-col justify-between transition-all duration-300">
+                <!-- Content will be injected dynamically via JS renderLevel() -->
+            </div>
+
+            <!-- Level Navigation Controls -->
+            <div class="flex items-center justify-between gap-3 pt-1">
+                <button id="prev-level-btn" onclick="changeLevel(-1)" class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-all disabled:opacity-40 disabled:pointer-events-none">
+                    ← Prev
+                </button>
+                <div class="text-xs text-gray-400 font-medium">
+                    <span id="completed-count">0</span> of 21 Completed
+                </div>
+                <button id="next-level-btn" onclick="changeLevel(1)" class="px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white font-heading font-semibold text-sm rounded-xl shadow-sm transition-all disabled:opacity-40">
+                    Next →
+                </button>
+            </div>
+
+            <!-- Quiz & Timeline Navigation Shortcuts -->
+            <div class="grid grid-cols-2 gap-2.5 pt-2">
+                <button onclick="nextScreen('screen-quiz')" class="py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-heading font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
+                    <span>🧠</span>
+                    <span>QUIZ ABOUT US</span>
+                </button>
+                <button onclick="nextScreen('screen-timeline')" class="py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-heading font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
+                    <span>⏳</span>
+                    <span>MEMORY TIMELINE</span>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 5: QUIZ ABOUT US -->
+        <section id="screen-quiz" class="screen-view hidden flex-col space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-brand-600 tracking-wider uppercase block">SPECIAL SIDE QUEST</span>
+                    <h2 class="font-heading font-extrabold text-2xl text-charcoal-900">How Well Do You Know Us?</h2>
+                    <p class="text-xs text-gray-500">Six years together. Let's test your memory!</p>
+                </div>
+                <button onclick="nextScreen('screen-game')" class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200">
+                    ← Back to Levels
+                </button>
+            </div>
+
+            <!-- Quiz Card -->
+            <div id="quiz-card-container" class="bg-white rounded-3xl p-5 sm:p-6 border border-orange-100 shadow-cozy space-y-5">
+                <!-- Dynamic Quiz Content JS -->
+            </div>
+        </section>
+
+
+        <!-- SCREEN 6: MEMORY TIMELINE -->
+        <section id="screen-timeline" class="screen-view hidden flex-col space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-brand-600 tracking-wider uppercase block">CHAPTER UNLOCKS</span>
+                    <h2 class="font-heading font-extrabold text-2xl text-charcoal-900">Memory Timeline</h2>
+                    <p class="text-xs text-gray-500">From Age 15 to Age 21: Our Story</p>
+                </div>
+                <button onclick="nextScreen('screen-game')" class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200">
+                    ← Back
+                </button>
+            </div>
+
+            <!-- Horizontal Timeline Node Selector -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <template id="timeline-node-template">
+                    <!-- Populated via JS -->
+                </template>
+                <div id="timeline-nodes-bar" class="flex gap-2 min-w-full"></div>
+            </div>
+
+            <!-- Active Memory Card Display -->
+            <div id="timeline-card-display" class="bg-white rounded-3xl p-5 sm:p-6 border border-orange-100 shadow-cozy space-y-4">
+                <!-- Dynamic memory node item -->
+            </div>
+        </section>
+
+
+        <!-- SCREEN 7: FINAL LEVEL & REWARD REVEAL -->
+        <section id="screen-final" class="screen-view hidden flex-col space-y-6 text-center text-white py-4">
+            
+            <div class="space-y-2">
+                <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full font-heading font-bold text-xs uppercase tracking-widest animate-pulse">
+                    🏆 ALL 21 LEVELS CLEARED
+                </span>
+                <h1 class="font-heading font-black text-4xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200">
+                    CONGRATULATIONS!
+                </h1>
+                <p class="text-gray-300 font-medium text-lg">
+                    YOU REACHED THE END OF LEVEL 21.
+                </p>
+            </div>
+
+            <!-- Trophy Summary Card -->
+            <div class="bg-darkcard rounded-3xl p-6 border border-amber-500/30 shadow-gold-glow space-y-4 text-left">
+                <div class="flex items-center gap-4 border-b border-gray-800 pb-4">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl shadow-lg">
+                        👑
+                    </div>
+                    <div>
+                        <span class="text-xs text-amber-400 font-bold uppercase tracking-wider block">FINAL TITLE UNLOCKED</span>
+                        <h3 class="font-heading font-extrabold text-xl text-white">BIRTHDAY LEGEND</h3>
+                        <p class="text-xs text-gray-400">Total XP Achieved: <span id="final-total-xp" class="text-green-400 font-bold">2100+ XP</span></p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-sm text-gray-300">
+                    <p class="flex items-center gap-2">
+                        <span class="text-green-400 font-bold">✓</span> You completed all 21 birthday levels.
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <span class="text-green-400 font-bold">✓</span> You survived the "Adult Life" Boss Fight.
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <span class="text-green-400 font-bold">✓</span> You unlocked 6 years of memories.
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <span class="text-green-400 font-bold">✓</span> You officially reached Level 21!
+                    </p>
+                </div>
+            </div>
+
+            <!-- CLAIM REWARD BUTTON / PRESENT AREA -->
+            <div id="reward-section" class="w-full pt-2">
+                <button id="claim-reward-btn" onclick="revealFinalReward()" class="w-full py-4 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:scale-[1.02] text-charcoal-900 font-heading font-black text-xl rounded-2xl shadow-gold-glow transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 animate-pulse-soft">
+                    <span>🎁 CLAIM YOUR REWARD →</span>
+                </button>
+
+                <!-- REVEALED PRESENT BOX (Hidden initially) -->
+                <div id="revealed-reward-box" class="hidden bg-gradient-to-br from-darkcard to-gray-900 rounded-3xl p-6 border-2 border-amber-400 text-left space-y-5 shadow-gold-glow">
+                    <div class="text-center space-y-2">
+                        <span class="text-3xl">🎁</span>
+                        <h2 class="font-heading font-extrabold text-2xl text-amber-300">
+                            YOUR REAL-LIFE REWARD
+                        </h2>
+                        <p class="text-lg font-bold text-white">
+                            “Your present is waiting for you on the bed. ❤️”
+                        </p>
+                    </div>
+
+                    <!-- BONUS GAME UNLOCK -->
+                    <div class="bg-black/60 rounded-2xl p-4 border border-green-500/40 space-y-2 relative overflow-hidden">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/40">
+                                BONUS DLC UNLOCKED ✓
+                            </span>
+                            <span class="text-xs text-gray-400">XBOX SERIES X|S</span>
+                        </div>
+                        
+                        <h4 class="font-heading font-extrabold text-xl text-amber-400 tracking-wide">
+                            ASSASSIN'S CREED SHADOWS
+                        </h4>
+                        <p class="text-xs text-gray-300">
+                            Added & pre-loaded directly to your Xbox account! ⚔️
+                        </p>
+                    </div>
+
+                    <div class="text-center pt-2">
+                        <p class="font-heading font-bold text-amber-300 text-lg">
+                            Happy 21st Birthday, my love!
+                        </p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            With all my love, Ana ❤️
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- SETTINGS & STATS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-5 shadow-2xl border border-gray-100">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 class="font-heading font-bold text-lg text-charcoal-900">Game Settings & Menu</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="bg-orange-50 rounded-2xl p-4 space-y-2 text-sm border border-orange-100">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Player:</span>
+                    <span class="font-bold text-charcoal-800">Enzo (Lvl 21)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Total XP:</span>
+                    <span id="modal-xp-val" class="font-bold text-brand-600">0 XP</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Levels Completed:</span>
+                    <span id="modal-levels-val" class="font-bold text-charcoal-800">0 / 21</span>
+                </div>
+            </div>
+
+            <!-- Audio Setting -->
+            <div class="flex items-center justify-between py-1">
+                <span class="text-sm font-semibold text-charcoal-800">Sound Effects (SFX)</span>
+                <button onclick="toggleAudio()" id="modal-audio-btn" class="px-3 py-1.5 bg-brand-100 text-brand-700 font-bold text-xs rounded-lg">
+                    ENABLED
+                </button>
+            </div>
+
+            <!-- Achievements Unlocked -->
+            <div class="space-y-2">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">ACHIEVEMENTS</span>
+                <div id="achievements-list" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="pt-2 border-t border-gray-100">
+                <button onclick="confirmResetProgress()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 transition-colors">
+                    ⚠️ RESET ALL GAME PROGRESS
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT GAME ENGINE AND CONFIGURATION -->
+    <script>
+        /* ==========================================================================
+           CONFIGURABLE GAME DATA (EDITABLE BY ANA)
+           ========================================================================== */
+        const GAME_CONFIG = {
+            husbandName: "Enzo",
+            wifeName: "Ana",
+            husbandAge: 21,
+            yearsTogether: 6,
+            totalLevels: 21,
+            xpPerLevel: 100,
+
+            // 21 LEVELS DATA
+            levels: [
+                {
+                    id: 1,
+                    title: "BIRTHDAY STARTER",
+                    subtitle: "What do you want first today?",
+                    type: "choice",
+                    options: [
+                        { text: "🍰 Something sweet & delicious", reply: "Sweet treat unlocked! Today calories don't count." },
+                        { text: "🍕 Something savory & salty", reply: "Pizza or snacks queued up for you!" },
+                        { text: "🎁 Surprise me!", reply: " Ana has secret birthday snacks ready!" }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "PLAYER 2 KNOWS YOU",
+                    subtitle: "What is your setup for a perfect gaming session?",
+                    type: "choice",
+                    options: [
+                        { text: "🎧 Headset on + Zero responsibilities", reply: "The ultimate gamer setup!" },
+                        { text: "🥤 Ice cold drink + favorite snacks", reply: "Inventory maxed out!" },
+                        { text: "❤️ Ana sitting next to you giving moral support", reply: "Co-Op Mode: Activated!" }
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "MEMORY UNLOCKED",
+                    subtitle: "Flashback to where it all began...",
+                    type: "memory",
+                    content: "Remember when we were 15 years old? We were just two young teenagers with huge dreams and butterflies in our stomachs. Look at how far we've come together!"
+                },
+                {
+                    id: 4,
+                    title: "OVERWATCH ROLE PICK",
+                    subtitle: "Choose your main role in our family team:",
+                    type: "choice",
+                    options: [
+                        { text: "🛡️ TANK: Protects everyone & carries burdens", reply: "TANK SELECTED: +500 Armor against life's problems!" },
+                        { text: "⚔️ DAMAGE: Takes action & solves tasks fast", reply: "DPS SELECTED: Critical hits on daily tasks!" },
+                        { text: "💚 SUPPORT: Keeps morale high & gives hugs", reply: "SUPPORT SELECTED: Infinite healing & love boosts!" }
+                    ]
+                },
+                {
+                    id: 5,
+                    title: "REAL LIFE POWER-UP",
+                    subtitle: "Select your active boost for Level 21:",
+                    type: "choice",
+                    options: [
+                        { text: "☕ Energy Boost: +100 Stamina", reply: "Stamina Refilled!" },
+                        { text: "🍫 Snack Boost: +100 Happiness", reply: "Inventory filled with sweets!" },
+                        { text: "❤️ Love Boost: +9999 Bond", reply: "Wife & Daughter affection maxed out!" }
+                    ]
+                },
+                {
+                    id: 6,
+                    title: "CO-OP MODE",
+                    subtitle: "Tap the button 5 times to high-five Ana!",
+                    type: "clicker",
+                    targetClicks: 5
+                },
+                {
+                    id: 7,
+                    title: "RANDOM LOOT BOX",
+                    subtitle: "Unbox your birthday item drop!",
+                    type: "lootbox",
+                    rewards: [
+                        "🎟️ COUPON: Free Back Massage from Ana",
+                        "🎮 COUPON: 3 Hours Uninterrupted Gaming Session",
+                        "🍔 COUPON: Pick Any Meal You Want Tonight",
+                        "💋 COUPON: 100 Extra Birthday Kisses"
+                    ]
+                },
+                {
+                    id: 8,
+                    title: "CHOOSE YOUR ADVENTURE",
+                    subtitle: "How should we start your birthday evening?",
+                    type: "choice",
+                    options: [
+                        { text: "🎬 Chill movie & cuddle session", reply: "Cozy vibes activated!" },
+                        { text: "🎮 Co-op gaming together", reply: "Player 1 and Player 2 ready!" },
+                        { text: "🍔 Order our absolute favorite food", reply: "Feast mode unlocked!" }
+                    ]
+                },
+                {
+                    id: 9,
+                    title: "BOSS FIGHT: THE ADULT LIFE",
+                    subtitle: "Boss HP: 500 / 500. Use your ultimate ability!",
+                    type: "boss",
+                    bossName: "THE ADULT LIFE 👔",
+                    bossHP: 500
+                },
+                {
+                    id: 10,
+                    title: "HALF WAY THERE!",
+                    subtitle: "You completed 10 out of 21 levels!",
+                    type: "celebration",
+                    message: " You are halfway through your 21st Birthday Quest! You're the best husband and dad ever."
+                },
+                {
+                    id: 11,
+                    title: "BIKE HERO BOOST",
+                    subtitle: "A special message from Ana's heart:",
+                    type: "memory",
+                    content: "🚴‍♂️ You ride your bicycle every single day through cold, wind or sun just to provide a wonderful life for us. Your dedication and effort inspire me every day."
+                },
+                {
+                    id: 12,
+                    title: "SWEET TOOTH INVENTORY",
+                    subtitle: "Pick your mandatory birthday treat:",
+                    type: "choice",
+                    options: [
+                        { text: "🍫 Brigadeiro / Chocolate", reply: "Classic choice!" },
+                        { text: "🍰 Birthday Cake Slice", reply: "Delicious!" },
+                        { text: "🍦 Ice Cream Sundae", reply: "Cold & sweet!" }
+                    ]
+                },
+                {
+                    id: 13,
+                    title: "THE DAD QUEST",
+                    subtitle: "What is your dad superpower with our daughter?",
+                    type: "choice",
+                    options: [
+                        { text: "💤 The Instant Nap Whisperer", reply: "Master of baby sleep time!" },
+                        { text: "🤡 The Goofy Laugh Generator", reply: "Making her laugh is your specialty!" },
+                        { text: "🤗 The Warmest Hug Giver", reply: "Best dad in the whole world!" }
+                    ]
+                },
+                {
+                    id: 14,
+                    title: "SUPER BRAIN TRIVIA",
+                    subtitle: "Who knows more random facts about everything?",
+                    type: "choice",
+                    options: [
+                        { text: "🧠 Enzo (The Walking Encyclopedia)", reply: "Correct! You know literally everything!" },
+                        { text: "🧠 Also Enzo", reply: "100% true!" }
+                    ]
+                },
+                {
+                    id: 15,
+                    title: "FLASHBACK TO AGE 15",
+                    subtitle: "Looking back 6 years...",
+                    type: "memory",
+                    content: "If 15-year-old Enzo could see 21-year-old Enzo today with his loving wife and beautiful baby girl, he would be so proud of the man you became!"
+                },
+                {
+                    id: 16,
+                    title: "LATE NIGHT GAMING",
+                    subtitle: "Favorite memory playing games together?",
+                    type: "choice",
+                    options: [
+                        { text: "🔫 Overwatch matches late at night", reply: "GG WP! Victory!" },
+                        { text: "😂 Laughing at silly gaming fails", reply: "Best laughs ever!" },
+                        { text: "🏆 Winning games together as a duo", reply: "Unstoppable team!" }
+                    ]
+                },
+                {
+                    id: 17,
+                    title: "COMEDY LEVEL",
+                    subtitle: "Your jokes are sometimes terrible, but...",
+                    type: "memory",
+                    content: "Even when your dad jokes are silly, your clumsy and sweet way of being makes me fall in love all over again! 😂❤️"
+                },
+                {
+                    id: 18,
+                    title: "HUSBAND STATS WHEEL",
+                    subtitle: "Your current attributes:",
+                    type: "stats",
+                    stats: [
+                        { name: "Love & Care", val: "100/100" },
+                        { name: "Dad Dedication", val: "100/100" },
+                        { name: "Hard Work", val: "100/100" },
+                        { name: "Gaming Skill", val: "99/100" }
+                    ]
+                },
+                {
+                    id: 19,
+                    title: "FUTURE QUESTING",
+                    subtitle: "What are we unlocking next together?",
+                    type: "choice",
+                    options: [
+                        { text: "✈️ Travel adventures with our family", reply: "Passport ready!" },
+                        { text: "🏡 Building our dream cozy home", reply: "Future unlocked!" },
+                        { text: "❤️ Growing older & loving each other more", reply: "Forever duo!" }
+                    ]
+                },
+                {
+                    id: 20,
+                    title: "ALMOST LEGENDARY",
+                    subtitle: "Level 20 Reached! Pre-Finale Hype!",
+                    type: "memory",
+                    content: "One more level to go! You've survived adult responsibilities, worked hard for our family, and reached official 21-year maturity!"
+                },
+                {
+                    id: 21,
+                    title: "THE 21ST BIRTHDAY UNLOCK",
+                    subtitle: "The final level is here!",
+                    type: "final_level"
+                }
+            ],
+
+            // QUIZ QUESTIONS (15 QUESTIONS)
+            quizQuestions: [
+                {
+                    q: "How old were Enzo and Ana when they first got together?",
+                    options: ["14 years old", "15 years old", "17 years old", "18 years old"],
+                    correct: 1
+                },
+                {
+                    q: "How many years have Enzo & Ana been together on his 21st birthday?",
+                    options: ["4 Years", "5 Years", "6 Years", "7 Years"],
+                    correct: 2
+                },
+                {
+                    q: "What vehicle does Enzo use daily to work hard for his family?",
+                    options: ["Motorcycle", "Bicycle 🚴‍♂️", "Car", "Scooter"],
+                    correct: 1
+                },
+                {
+                    q: "Which game is mentioned in Ana's letter as a special shared memory?",
+                    options: ["Minecraft", "Valorant", "Overwatch 🎮", "Call of Duty"],
+                    correct: 2
+                },
+                {
+                    q: "What outfit theme are the family dressed up in on Screen 3?",
+                    options: ["Star Wars", "Toy Story 🤠", "Marvel Avengers", "Super Mario"],
+                    correct: 1
+                },
+                {
+                    q: "What is Enzo's status on his Player Card?",
+                    options: ["Pro Gamer", "Birthday Boy 🎉", "Sleepy Head", "Boss Level"],
+                    correct: 1
+                },
+                {
+                    q: "In the Boss Fight level, what is the ultimate player attack?",
+                    options: ["Coffee Boost", "WIFE SUPPORT +100 ❤️️", "Keyboard Smash", "Bike Sprint"],
+                    correct: 1
+                },
+                {
+                    q: "What hair color does Ana have in the family illustration?",
+                    options: ["Brown", "Blonde 👱‍♀️", "Black", "Red"],
+                    correct: 1
+                },
+                {
+                    q: "What color glasses does Enzo wear in his illustration?",
+                    options: ["Dark Glasses 👓", "Red Glasses", "No Glasses", "Gold Glasses"],
+                    correct: 0
+                },
+                {
+                    q: "What hair style does their baby daughter have?",
+                    options: ["Straight blonde", "Light brown wavy hair 👶", "Curly black", "No hair"],
+                    correct: 1
+                },
+                {
+                    q: "What is Ana's favorite thing about Enzo's personality?",
+                    options: ["He's super quiet", "He is hard working, smart & sweet ❤️", "He sleeps a lot", "He wins all games"],
+                    correct: 1
+                },
+                {
+                    q: "How many levels are in this birthday game?",
+                    options: ["10", "15", "21 Levels 🏆", "50"],
+                    correct: 2
+                },
+                {
+                    q: "What bonus game is unlocked on Xbox at the end?",
+                    options: ["FIFA 26", "GTA 6", "Assassin's Creed Shadows ⚔️", "Halo Infinite"],
+                    correct: 2
+                },
+                {
+                    q: "Where is Enzo's real-life birthday present waiting for him?",
+                    options: ["In the kitchen", "On the bed ❤️️", "In the car", "Under the sofa"],
+                    correct: 1
+                },
+                {
+                    q: "Who loves Enzo more than anything in the world?",
+                    options: ["Ana & their daughter ❤️", "Everyone", "The cat", "All of the above!"],
+                    correct: 3
+                }
+            ],
+
+            // TIMELINE DATA (AGES 15 TO 21)
+            timeline: [
+                { age: 15, year: "The Beginning", text: "We met and started our journey at 15! Young teenagers falling in love for the very first time." },
+                { age: 16, year: "Growing Together", text: "Late night calls, school memories, and realization that this was real love." },
+                { age: 17, year: "Adventures & Dreams", text: "Planning our future, dreaming big, and overcoming initial challenges as a duo." },
+                { age: 18, year: "Adult Step", text: "Turning 18, facing real world responsibilities hand in hand." },
+                { age: 19, year: "Our Greatest Gift", text: "Becoming parents and welcoming our sweet baby daughter into the world!" },
+                { age: 20, year: "Family Strength", text: "You working hard on your bicycle every single day to give us an amazing life." },
+                { age: 21, year: "Maturity & Today", text: "Official Level 21! Turning 21 together after 6 amazing years. Happy Birthday!" }
+            ],
+
+            // ACHIEVEMENTS LIST
+            achievements: [
+                { id: "quest_1", title: "🏆 FIRST QUEST", desc: "Completed Level 1" },
+                { id: "coop", title: "🏆 CO-OP PARTNERS", desc: "Completed Level 5" },
+                { id: "quiz_master", title: "🏆 MEMORY MASTER", desc: "Finished Quiz About Us" },
+                { id: "lvl_20", title: "🏆 LEVEL 20", desc: "Reached Level 20" },
+                { id: "legend", title: "🏆 BIRTHDAY LEGEND", desc: "Completed all 21 levels!" }
+            ]
+        };
+
+
+        /* ==========================================================================
+           GAME ENGINE STATE & LOCAL STORAGE
+           ========================================================================== */
+        let gameState = {
+            currentLevel: 1,
+            completedLevels: [],
+            totalXP: 0,
+            quizScore: 0,
+            quizAnswered: 0,
+            unlockedAchievements: [],
+            audioMuted: false,
+            clickCountLevel6: 0,
+            activeTimelineAge: 15
+        };
+
+        // Web Audio API Context
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Synthesize UI SFX
+        function playSound(type) {
+            if (gameState.audioMuted) return;
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'xp') {
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'win') {
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch(e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
+
+        /* Save & Load LocalStorage */
+        function saveProgress() {
+            localStorage.setItem('enzo_bday_game_state', JSON.stringify(gameState));
+            updateHUD();
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('enzo_bday_game_state');
+            if (saved) {
+                try {
+                    gameState = { ...gameState, ...JSON.parse(saved) };
+                    // If returning player
+                    document.getElementById('start-btn-text').innerText = 'CONTINUE GAME →';
+                } catch(e) {}
+            }
+            updateHUD();
+        }
+
+        /* Float XP Notification UI */
+        function triggerXPGain(amount = 100) {
+            playSound('xp');
+            gameState.totalXP += amount;
+            saveProgress();
+
+            const container = document.getElementById('xp-floating-container');
+            const el = document.createElement('div');
+            el.className = 'xp-float-anim bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-heading font-black text-xl px-4 py-2 rounded-2xl shadow-lg border border-yellow-200 pointer-events-none';
+            el.innerText = `+${amount} XP!`;
+            container.appendChild(el);
+
+            setTimeout(() => el.remove(), 1200);
+            updateHUD();
+        }
+
+
+        /* ==========================================================================
+           NAVIGATION & HUD UPDATES
+           ========================================================================== */
+        function nextScreen(screenId) {
+            playSound('click');
+            document.querySelectorAll('.screen-view').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('flex', 'active');
+            });
+
+            const target = document.getElementById(screenId);
+            target.classList.remove('hidden');
+            target.classList.add('flex', 'active');
+
+            // Handle Dark Theme for Final Screen
+            if (screenId === 'screen-final') {
+                document.body.style.backgroundColor = '#121216';
+                document.body.style.color = '#FFFFFF';
+                document.getElementById('top-hud').style.backgroundColor = '#1E1E24';
+                document.getElementById('top-hud').style.borderColor = '#2B2B36';
+                document.getElementById('hud-player-name').style.color = '#FFFFFF';
+                triggerConfetti();
+            } else {
+                document.body.style.backgroundColor = '#FAF8F5';
+                document.body.style.color = '#2B2B2C';
+                document.getElementById('top-hud').style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                document.getElementById('top-hud').style.borderColor = '#FFEDD5';
+                document.getElementById('hud-player-name').style.color = '#2B2B2C';
+            }
+
+            if (screenId === 'screen-game') {
+                renderLevel();
+            } else if (screenId === 'screen-quiz') {
+                renderQuiz();
+            } else if (screenId === 'screen-timeline') {
+                renderTimeline();
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-level-num').innerText = gameState.currentLevel;
+            document.getElementById('hud-xp-text').innerText = `${gameState.totalXP} / 2100`;
+            
+            const pct = Math.min(100, Math.round((gameState.totalXP / 2100) * 100));
+            document.getElementById('hud-xp-bar').style.width = `${pct}%`;
+
+            // Check Achievements
+            checkAchievements();
+        }
+
+        function checkAchievements() {
+            if (gameState.completedLevels.includes(1) && !gameState.unlockedAchievements.includes('quest_1')) {
+                gameState.unlockedAchievements.push('quest_1');
+            }
+            if (gameState.completedLevels.includes(5) && !gameState.unlockedAchievements.includes('coop')) {
+                gameState.unlockedAchievements.push('coop');
+            }
+            if (gameState.completedLevels.includes(20) && !gameState.unlockedAchievements.includes('lvl_20')) {
+                gameState.unlockedAchievements.push('lvl_20');
+            }
+            if (gameState.completedLevels.length >= 21 && !gameState.unlockedAchievements.includes('legend')) {
+                gameState.unlockedAchievements.push('legend');
+            }
+        }
+
+
+        /* ==========================================================================
+           LEVEL RENDERER ENGINE
+           ========================================================================== */
+        function changeLevel(delta) {
+            playSound('click');
+            const newLvl = gameState.currentLevel + delta;
+            if (newLvl >= 1 && newLvl <= GAME_CONFIG.totalLevels) {
+                gameState.currentLevel = newLvl;
+                saveProgress();
+                renderLevel();
+            }
+        }
+
+        function renderLevel() {
+            const levelData = GAME_CONFIG.levels.find(l => l.id === gameState.currentLevel);
+            if (!levelData) return;
+
+            document.getElementById('level-display-num').innerText = levelData.id;
+            document.getElementById('completed-count').innerText = gameState.completedLevels.length;
+
+            const body = document.getElementById('level-card-body');
+            const isCompleted = gameState.completedLevels.includes(levelData.id);
+
+            let html = `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-brand-600 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100 uppercase tracking-wider">
+                            LEVEL ${levelData.id}
+                        </span>
+                        ${isCompleted ? '<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">COMPLETED ✓</span>' : ''}
+                    </div>
+                    <h3 class="font-heading font-extrabold text-2xl text-charcoal-900">${levelData.title}</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">${levelData.subtitle}</p>
+                </div>
+            `;
+
+            // DYNAMIC CONTENT BASED ON LEVEL TYPE
+            if (levelData.type === 'choice') {
+                html += `<div class="space-y-2.5 my-4">`;
+                levelData.options.forEach((opt, idx) => {
+                    html += `
+                        <button onclick="handleChoice(${levelData.id}, ${idx})" class="w-full text-left p-3.5 rounded-2xl border border-gray-200 hover:border-brand-500 hover:bg-orange-50/50 transition-all text-sm font-semibold text-charcoal-800 flex items-center justify-between group active:scale-98">
+                            <span>${opt.text}</span>
+                            <span class="text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+            } 
+            else if (levelData.type === 'memory' || levelData.type === 'celebration') {
+                html += `
+                    <div class="my-4 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-sm text-gray-800 leading-relaxed">
+                        ${levelData.content || levelData.message}
+                    </div>
+                    ${!isCompleted ? `
+                        <button onclick="completeLevel(${levelData.id})" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-heading font-bold rounded-xl shadow-sm transition-all active:scale-95">
+                            CLAIM LEVEL XP (+100 XP) →
+                        </button>
+                    ` : ''}
+                `;
+            }
+            else if (levelData.type === 'clicker') {
+                const remaining = Math.max(0, levelData.targetClicks - gameState.clickCountLevel6);
+                html += `
+                    <div class="my-6 text-center space-y-3">
+                        <div class="text-4xl">🤝</div>
+                        <p class="text-xs text-gray-500">Tap below to exchange high-fives with Player 02!</p>
+                        <button onclick="handleHighFive()" class="px-6 py-4 bg-orange-100 hover:bg-orange-200 text-brand-700 font-heading font-black text-lg rounded-2xl border-2 border-brand-400 active:scale-90 transition-all">
+                            HIGH FIVE ANA! (${remaining} Left)
+                        </button>
+                    </div>
+                `;
+            }
+            else if (levelData.type === 'lootbox') {
+                html += `
+                    <div class="my-6 text-center space-y-4">
+                        <div id="lootbox-icon" class="text-5xl animate-bounce">🎁</div>
+                        <div id="lootbox-result" class="text-sm font-bold text-brand-700 min-h-[30px]">
+                            Tap open to reveal your birthday loot!
+                        </div>
+                        <button onclick="openLootbox(${levelData.id})" class="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-heading font-bold rounded-xl shadow-game active:scale-95 transition-all">
+                            OPEN LOOT BOX ✨
+                        </button>
+                    </div>
+                `;
+            }
+            else if (levelData.type === 'boss') {
+                html += `
+                    <div class="my-4 p-4 rounded-2xl bg-red-50 border border-red-200 space-y-3 text-center">
+                        <div class="font-heading font-black text-red-600 text-lg">${levelData.bossName}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div id="boss-hp-bar" class="bg-red-500 h-full w-full transition-all duration-300"></div>
+                        </div>
+                        <p id="boss-status" class="text-xs text-gray-600">Attacks: Responsibilities, Tiredness, Adulting.</p>
+                        <button onclick="attackBoss(${levelData.id})" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-heading font-extrabold rounded-xl shadow-md transition-all active:scale-95">
+                            ⚔️ USE ULTIMATE: WIFE SUPPORT (+100 DAMAGE)
+                        </button>
+                    </div>
+                `;
+            }
+            else if (levelData.type === 'stats') {
+                html += `<div class="space-y-2.5 my-4">`;
+                levelData.stats.forEach(st => {
+                    html += `
+                        <div class="flex items-center justify-between text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">${st.name}</span>
+                            <span class="font-bold text-brand-600">${st.val}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                if (!isCompleted) {
+                    html += `
+                        <button onclick="completeLevel(${levelData.id})" class="w-full py-3 bg-brand-500 text-white font-heading font-bold rounded-xl shadow-sm">
+                            CONFIRM STATS & CLAIM XP →
+                        </button>
+                    `;
+                }
+            }
+            else if (levelData.type === 'final_level') {
+                html += `
+                    <div class="my-4 text-center space-y-4">
+                        <div class="text-5xl">👑</div>
+                        <p class="text-sm text-gray-700 font-medium">
+                            You've completed all prerequisites! Ready to unlock your birthday rewards?
+                        </p>
+                        <button onclick="nextScreen('screen-final')" class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-charcoal-900 font-heading font-black text-lg rounded-2xl shadow-gold-glow animate-pulse">
+                            ENTER FINALE & REWARD ROOM 🎉
+                        </button>
+                    </div>
+                `;
+            }
+
+            body.innerHTML = html;
+
+            // Nav buttons update
+            document.getElementById('prev-level-btn').disabled = (gameState.currentLevel === 1);
+            document.getElementById('next-level-btn').disabled = (gameState.currentLevel === GAME_CONFIG.totalLevels);
+        }
+
+        /* Level Interactive Handlers */
+        function completeLevel(levelId) {
+            if (!gameState.completedLevels.includes(levelId)) {
+                gameState.completedLevels.push(levelId);
+                triggerXPGain(100);
+            } else {
+                playSound('click');
+            }
+            renderLevel();
+        }
+
+        function handleChoice(levelId, optionIndex) {
+            const levelData = GAME_CONFIG.levels.find(l => l.id === levelId);
+            const opt = levelData.options[optionIndex];
+            
+            alertModal("CHOICE SELECTED", opt.reply, () => {
+                completeLevel(levelId);
+            });
+        }
+
+        function handleHighFive() {
+            playSound('click');
+            gameState.clickCountLevel6++;
+            if (gameState.clickCountLevel6 >= 5) {
+                alertModal("HIGH FIVE SUCCESS!", "Ana high-fived you back! +100 XP", () => {
+                    completeLevel(6);
+                });
+            } else {
+                renderLevel();
+            }
+        }
+
+        function openLootbox(levelId) {
+            playSound('win');
+            const levelData = GAME_CONFIG.levels.find(l => l.id === levelId);
+            const randomReward = levelData.rewards[Math.floor(Math.random() * levelData.rewards.length)];
+            
+            document.getElementById('lootbox-icon').classList.add('scale-125');
+            document.getElementById('lootbox-result').innerText = randomReward;
+
+            setTimeout(() => {
+                completeLevel(levelId);
+            }, 800);
+        }
+
+        function attackBoss(levelId) {
+            playSound('win');
+            document.getElementById('boss-hp-bar').style.width = '0%';
+            document.getElementById('boss-status').innerText = 'CRITICAL HIT! Boss Defeated by Wife Support!';
+            
+            setTimeout(() => {
+                alertModal("BOSS DEFEATED!", "You and Ana crushed the Adult Life Boss! +100 XP", () => {
+                    completeLevel(levelId);
+                });
+            }, 600);
+        }
+
+
+        /* ==========================================================================
+           QUIZ ENGINE
+           ========================================================================== */
+        let currentQuizIdx = 0;
+
+        function renderQuiz() {
+            const qContainer = document.getElementById('quiz-card-container');
+            const questions = GAME_CONFIG.quizQuestions;
+
+            if (currentQuizIdx >= questions.length) {
+                // Quiz Completed Summary
+                const scorePct = Math.round((gameState.quizScore / questions.length) * 100);
+                qContainer.innerHTML = `
+                    <div class="text-center space-y-4 py-4">
+                        <div class="text-5xl">🧠</div>
+                        <h3 class="font-heading font-black text-2xl text-charcoal-900">QUIZ COMPLETE!</h3>
+                        <div class="inline-block bg-orange-100 text-brand-700 font-heading font-extrabold text-2xl px-5 py-2 rounded-2xl border border-orange-200">
+                            Relationship Knowledge: ${scorePct}%
+                        </div>
+                        <p class="text-sm text-gray-600 max-w-xs mx-auto">
+                            ${scorePct >= 80 ? " You know our story inside out! You are truly my soulmate!" : "Great effort, my love! You still remember so many precious memories!"}
+                        </p>
+                        <button onclick="nextScreen('screen-game')" class="w-full py-3.5 bg-brand-500 text-white font-heading font-bold rounded-2xl shadow-game">
+                            RETURN TO GAME LEVELS →
+                        </button>
+                    </div>
+                `;
+
+                if (!gameState.unlockedAchievements.includes('quiz_master')) {
+                    gameState.unlockedAchievements.push('quiz_master');
+                    triggerXPGain(150);
+                }
+                return;
+            }
+
+            const q = questions[currentQuizIdx];
+            let html = `
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-bold">
+                        <span>QUESTION ${currentQuizIdx + 1} OF ${questions.length}</span>
+                        <span class="text-brand-600">+50 XP PER RIGHT ANSWER</span>
+                    </div>
+                    <h3 class="font-heading font-bold text-lg text-charcoal-900">${q.q}</h3>
+                    <div class="space-y-2 pt-2">
+            `;
+
+            q.options.forEach((opt, idx) => {
+                html += `
+                    <button onclick="answerQuiz(${idx})" class="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-brand-500 hover:bg-orange-50/60 font-semibold text-sm text-charcoal-800 transition-all active:scale-98">
+                        ${opt}
+                    </button>
+                `;
+            });
+
+            html += `</div></div>`;
+            qContainer.innerHTML = html;
+        }
+
+        function answerQuiz(optionIdx) {
+            const q = GAME_CONFIG.quizQuestions[currentQuizIdx];
+            if (optionIdx === q.correct) {
+                playSound('win');
+                gameState.quizScore++;
+                triggerXPGain(50);
+            } else {
+                playSound('click');
+            }
+            currentQuizIdx++;
+            renderQuiz();
+        }
+
+
+        /* ==========================================================================
+           MEMORY TIMELINE ENGINE
+           ========================================================================== */
+        function renderTimeline() {
+            const nodesContainer = document.getElementById('timeline-nodes-bar');
+            nodesContainer.innerHTML = '';
+
+            GAME_CONFIG.timeline.forEach(item => {
+                const isActive = (item.age === gameState.activeTimelineAge);
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2.5 rounded-xl font-heading font-bold text-xs whitespace-nowrap transition-all border ${
+                    isActive 
+                    ? 'bg-brand-500 text-white border-brand-600 shadow-sm' 
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-orange-50'
+                }`;
+                btn.innerText = `AGE ${item.age}`;
+                btn.onclick = () => {
+                    playSound('click');
+                    gameState.activeTimelineAge = item.age;
+                    renderTimeline();
+                };
+                nodesContainer.appendChild(btn);
+            });
+
+            const activeData = GAME_CONFIG.timeline.find(t => t.age === gameState.activeTimelineAge);
+            const cardDisplay = document.getElementById('timeline-card-display');
+
+            cardDisplay.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                        <span class="text-xs font-bold text-brand-600 uppercase tracking-wider">CHAPTER: AGE ${activeData.age}</span>
+                        <span class="text-xs font-bold text-gray-400">${activeData.year}</span>
+                    </div>
+                    <h3 class="font-heading font-extrabold text-xl text-charcoal-900">YEAR ${activeData.age} — ${activeData.year}</h3>
+                    <p class="text-sm text-gray-700 leading-relaxed bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+                        ${activeData.text}
+                    </p>
+                </div>
+            `;
+        }
+
+
+        /* ==========================================================================
+           FINAL REWARD REVEAL & CONFETTI
+           ========================================================================== */
+        function revealFinalReward() {
+            playSound('win');
+            document.getElementById('claim-reward-btn').classList.add('hidden');
+            document.getElementById('revealed-reward-box').classList.remove('hidden');
+            triggerConfetti();
+        }
+
+        function triggerConfetti() {
+            if (window.confetti) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+
+        /* ==========================================================================
+           SETTINGS MODAL & UTILITIES
+           ========================================================================== */
+        function openSettingsModal() {
+            playSound('click');
+            document.getElementById('modal-xp-val').innerText = `${gameState.totalXP} XP`;
+            document.getElementById('modal-levels-val').innerText = `${gameState.completedLevels.length} / 21`;
+
+            const achList = document.getElementById('achievements-list');
+            achList.innerHTML = '';
+            GAME_CONFIG.achievements.forEach(ach => {
+                const isUnlocked = gameState.unlockedAchievements.includes(ach.id);
+                achList.innerHTML += `
+                    <div class="flex items-center justify-between text-xs p-2 rounded-xl ${isUnlocked ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-gray-50 text-gray-400'}">
+                        <span class="font-bold">${ach.title}</span>
+                        <span>${isUnlocked ? 'UNLOCKED ✓' : 'LOCKED 🔒'}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            playSound('click');
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function toggleAudio() {
+            gameState.audioMuted = !gameState.audioMuted;
+            document.getElementById('audio-icon').innerText = gameState.audioMuted ? '🔇' : '🔊';
+            document.getElementById('modal-audio-btn').innerText = gameState.audioMuted ? 'MUTED' : 'ENABLED';
+            saveProgress();
+        }
+
+        function confirmResetProgress() {
+            if (confirm("Are you sure you want to reset all game progress?")) {
+                localStorage.removeItem('enzo_bday_game_state');
+                location.reload();
+            }
+        }
+
+        /* Generic Alert Dialog Box (Replaces window.alert) */
+        function alertModal(title, text, callback) {
+            playSound('click');
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl max-w-xs w-full p-5 space-y-4 shadow-2xl text-center border border-orange-100 animate-bounce-short">
+                    <h4 class="font-heading font-extrabold text-lg text-charcoal-900">${title}</h4>
+                    <p class="text-xs text-gray-600 leading-relaxed">${text}</p>
+                    <button id="alert-ok-btn" class="w-full py-2.5 bg-brand-500 text-white font-heading font-bold text-xs rounded-xl shadow-sm">
+                        OK CONTINUAR →
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('alert-ok-btn').onclick = () => {
+                playSound('click');
+                modal.remove();
+                if (callback) callback();
+            };
+        }
+
+        /* Initialization on Page Load */
+        window.onload = function() {
+            loadProgress();
+            updateHUD();
+        };
+    </script>
+</body>
+</html>
